@@ -5,46 +5,19 @@ PYTHON ?= python3
 PIP ?= $(PYTHON) -m pip
 
 # this is the upstream libcurl-impersonate version
-VERSION := 2.3.1
-CURL_VERSION := curl-8_23_0
+VERSION := @CURL_IMPERSONATE_VERSION@
+CURL_VERSION := @CURL_VERSION@
 
-ifeq ($(OS),Windows_NT)
-    CURRENT_USER := $(shell echo %USERNAME%)
-else
-    CURRENT_USER := $(shell whoami)
-endif
-
-$(CURL_VERSION):
-	curl -fL --retry 3 https://github.com/curl/curl/archive/$(CURL_VERSION).zip -o curl.zip
-	unzip -q -o curl.zip
-	mv curl-$(CURL_VERSION) $(CURL_VERSION)
-
-curl-impersonate-$(VERSION)/patches: $(CURL_VERSION)
-	curl -fL --retry 3 "https://github.com/lexiforest/curl-impersonate/archive/refs/tags/v$(VERSION).tar.gz" \
-		-o "curl-impersonate-$(VERSION).tar.gz"
-	tar -xzf curl-impersonate-$(VERSION).tar.gz
-
-.preprocessed: curl-impersonate-$(VERSION)/patches
+.preprocessed:
 	cd $(CURL_VERSION)
 	# for p in $</curl*.patch; do patch -p1 < ../$$p; done
-	patch -p1 < ../$</curl.patch
+	patch -p1 < ../curl-impersonate-@CURL_IMPERSONATE_VERSION@/patches/curl.patch
 	# Re-generate the configure script
 	autoreconf -fi
 	mkdir -p ../include/curl
 	cp -R include/curl/* ../include/curl/
 	# Sentinel files: https://tech.davis-hansson.com/p/make/
 	cd ..
-	touch .preprocessed
-
-local-curl: $(CURL_VERSION)
-	cp /usr/local/lib/libcurl-impersonate* /Users/$(CURRENT_USER)/work/_temp/install/lib/
-	cd $(CURL_VERSION)
-	for p in ../curl-impersonate/patches/curl*.patch; do patch -p1 < ../$$p; done
-	# Re-generate the configure script
-	autoreconf -fi
-	mkdir -p ../include/curl
-	cp -R include/curl/* ../include/curl/
-	# Sentinel files: https://tech.davis-hansson.com/p/make/
 	touch .preprocessed
 
 gen-const:
